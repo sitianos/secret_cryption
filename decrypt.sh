@@ -47,16 +47,27 @@ randkey=$(mktemp -p .)
 # decrypt random key with secret key
 for slotdir in ${workdir}/slots/*; do
 #    if [[ $file =~ ^secrets/slot([0-9]+)/randkey.enc$ ]]; then
-    openssl pkeyutl -decrypt -inkey "${deckey}" -in "${slotdir}/randkey.enc" -out "${randkey}" 2> /dev/null
+    # check if public key in slot matches private key
+    cmp -s <(openssl pkey -text_pub -noout -in "${deckey}") <(openssl pkey -text_pub -noout -pubin -in "${slotdir}/pubkey") 2> /dev/null
     if [ $? = 0 ]; then
         echo "hit ${slotdir#${workdir}/}"
+        slot=${slotdir}
         break
     fi
 #    fi
 done
 
-if [ ! -s "${randkey}" ]; then
-    echo "Error: filed to decrypt random key" >&2
+if [ -z "${slot}" ]; then
+    echo "Error: filed to find matching key slot" >&2
+    shred -u ${randkey} ${deckey}
+    rm -rf ${workdir}
+    exit 1
+fi
+
+openssl pkeyutl -decrypt -inkey "${deckey}" -in "${slot}/randkey.enc" -out "${randkey}"
+
+if [ $? != 0 ]; then
+    echo "Error: failed to decrypt random key" >&2
     shred -u ${randkey} ${deckey}
     rm -rf ${workdir}
     exit 1

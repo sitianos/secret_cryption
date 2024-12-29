@@ -70,7 +70,8 @@ for ((i=0; i<${#keys[@]}; i++)) ; do
     # RSA encrypt a rand text with public keys
     openssl pkeyutl -encrypt -pubin -inkey "${keys[$i]}" \
         -in "${randkey}" -out "${slotdir}/randkey.enc" &&
-    cp "${keys[$i]}" "${slotdir}/$(basename ${keys[$i]})"
+    # cp "${keys[$i]}" "${slotdir}/$(basename ${keys[$i]})"
+    cp "${keys[$i]}" "${slotdir}/pubkey"
     if [ $? -gt 0 ]; then
         echo "Error: failed to encrypt randkey with ${keys[$i]}" >&2
         shred -u "${randkey}"
@@ -85,7 +86,7 @@ tar czf "${out}" -C "${workdir}" $(ls ${workdir})
 echo "${out} is created"
 
 rm -rf "${workdir}"
-echo -n "Remove ${secretfile}? y/^y] "
+echo -n "Remove ${secretfile}? [y/^y] "
 read RM
 if [ $RM == y ]; then
     shred -u "${secretfile}"
