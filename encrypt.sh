@@ -10,23 +10,23 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "${secretfile}" ]; then
-    echo "secret file is not specified"
+    echo "secret file is not specified" >&2
     exit 1
 fi
 
 if [ ! -e "${secretfile}" ]; then
-    echo "crypted file does not exist"
+    echo "crypted file does not exist" >&2
     exit 1
 fi
 
 if [ ${#keys[@]} = 0 ]; then
-    echo "no public key is specified"
+    echo "no public key is specified" >&2
     exit 1
 fi
 
 for key in ${keys[@]}; do
     if [ ! -e ${key} ]; then
-        echo "${key} does not exist"
+        echo "${key} does not exist" >&2
         exit 1
     fi
 done
@@ -35,20 +35,30 @@ if [ -z "${out}" ]; then
     out=${secretfile%.*}.tar.gz
 fi
 
+if [ -f "${out}" ]; then
+    echo "${out} already exists"
+    echo -n "Replace ${out}? [y/^y] "
+    read RM
+    if [ $RM != y ]; then
+        echo "Abort" >&2
+        exit 1
+    fi
+fi
+
 workdir=$(mktemp -d -p .)
 
-echo "encrypted ${secretfile} to ${out} by ${key}"
+echo "Start encrypting ${secretfile} to ${out} by ${key}"
 
-# generate random text
+# generate random key
 randkey=$(mktemp -p .)
 openssl rand -out "${randkey}" -base64 32
 # sort "${secretfile}" -t ',' -k 2
 
-# AES encrypt files with a random text
+# AES encrypt files with random key
 openssl enc -e -pbkdf2 -aes-256-cbc -in "${secretfile}" \
     -out "${workdir}/cipher.enc" -kfile "${randkey}" -base64
 if [ $? -gt 0 ]; then
-    echo "Error occured. unable to crypt secret file."
+    echo "Error: failed to encrypt secret file" >&2
     shred -u "${randkey}"
     rm -rf "${workdir}"
     exit 1
@@ -62,7 +72,7 @@ for ((i=0; i<${#keys[@]}; i++)) ; do
         -in "${randkey}" -out "${slotdir}/randkey.enc" &&
     cp "${keys[$i]}" "${slotdir}/$(basename ${keys[$i]})"
     if [ $? -gt 0 ]; then
-        echo "Error occured. unable to crypt randkey with ${keys[$i]}"
+        echo "Error: failed to encrypt randkey with ${keys[$i]}" >&2
         shred -u "${randkey}"
         rm -rf "${workdir}"
         exit 1
@@ -70,12 +80,12 @@ for ((i=0; i<${#keys[@]}; i++)) ; do
 done
 
 shred -u "${randkey}"
-# compress an encrypted file and key slots
+# compress encrypted file and key slots
 tar czf "${out}" -C "${workdir}" $(ls ${workdir})
-rm -rf "${workdir}"
+echo "${out} is created"
 
-echo 'Encrypted. Create' ${out}
-echo 'Remove' ${secretfile}? '[y/^y]'
+rm -rf "${workdir}"
+echo -n "Remove ${secretfile}? y/^y] "
 read RM
 if [ $RM == y ]; then
     shred -u "${secretfile}"
