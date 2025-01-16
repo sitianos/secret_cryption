@@ -4,7 +4,7 @@ while [ "$1" != "" ]; do
     case $1 in
         -o) shift; out=$1;shift;;
         -k) shift; keys+=($1);shift;;
-        -h) echo "encrypt.sh secretfile -k publickey [-o encryptedfile]"; exit 1;;
+        -h) echo "encrypt.sh <secret file> [-k <public key>]... [-o <encrypted file>]"; exit 1;;
         *) secretfile=$1;shift;;
     esac
 done

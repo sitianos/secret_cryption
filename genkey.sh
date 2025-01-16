@@ -1,7 +1,4 @@
-if [ $# -lt 2 ]; then
-    echo "required 2 values [private key, public key]"
-    exit 1
-fi
+#! /bin/bash
 
 function check_existence () {
     if [ -f "$1" ]; then
@@ -16,12 +13,30 @@ function check_existence () {
     fi
 }
 
-check_existence $1
-check_existence $2
+ARGS=()
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -h) echo "./genkey.sh <private key> <public key>"; exit 1;;
+        *) ARGS+=($1); shift;;
+    esac
+done
+
+if [ ${#ARGS[@]} != 2 ]; then
+    echo "required 2 values private key and public key"
+    exit 1
+fi
+
+PRIVKEY=${ARGS[0]}
+PUBKEY=${ARGS[1]}
+
+
+check_existence ${PRIVKEY}
+check_existence ${PUBKEY}
 tempkey=$(mktemp -p .)
 openssl genpkey -algorithm RSA  -out "${tempkey}" -pkeyopt rsa_keygen_bits:3072
 #openssl genrsa -out $1 -aes256 3072
-openssl pkey -in "${tempkey}" -aes-256-cbc -out $1 && \
-openssl pkey -in "${tempkey}" -pubout -out $2
-chmod 600 $1
+openssl pkey -in "${tempkey}" -aes-256-cbc -out ${PRIVKEY} && \
+openssl pkey -in "${tempkey}" -pubout -out ${PUBKEY}
+chmod 600 ${PRIVKEY}
 shred -u ${tempkey}

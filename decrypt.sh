@@ -2,7 +2,7 @@
 
 while [ "$1" != "" ]; do
     case $1 in
-        -h) echo "decrypt.sh archivefile -k keyfile [-o outfile]"; exit 1;;
+        -h) echo "decrypt.sh <encrypted file> -k <key file> [-o <output file>]"; exit 1;;
         -o) shift; out=$1;shift;;
         -k) shift; key=$1;shift;;
         *) enc=$1;shift;;
